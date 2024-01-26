@@ -1,3 +1,5 @@
+#version 460 core
+
 #include <flutter/runtime_effect.glsl>
 
 precision mediump float;
@@ -8,7 +10,12 @@ uniform vec3 uCameraUp;
 uniform float uFieldOfView;
 uniform float uAspectRatio;
 uniform vec2 uResolution;
+uniform sampler2D uTexture;
+uniform float triangleCount;
 out vec4 fragColor;
+
+float minDistance = 1000000.0; // Large initial value
+int closestTriangle = -1; // -1 indicates no intersection
 
 float mInCramersRule(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
     return a * (e * i - h * f) + b * (g * f - d * i) + c * (d * h - e * g);
@@ -26,11 +33,15 @@ float bInCramersRule(float a, float b, float c, float d, float e, float f, float
     return (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / mInCramersRule(a, b, c, d, e, f, g, h, i);
 }
 
-// Function to find intersection of a ray and a triangle
-vec3 intersection(vec3 rayO, vec3 rayD) {
-    vec3 point0 = vec3(1.0, 0.0, -1.0);
-    vec3 point1 = vec3(1.0, -1.0, 1.0);
-    vec3 point2 = vec3(1.0, 1.0, 1.0);
+vec3 getPointFromPixel(int index) {
+    float yCoord = (float(index) * 2 + 1) / float(triangleCount * 3 * 2);
+    return texture(uTexture, vec2(0.5, yCoord)).xyz * 255.0;
+}
+
+vec3 intersection(vec3 rayO, vec3 rayD, int triangle) {
+    vec3 point0 = getPointFromPixel(triangle + 0);
+    vec3 point1 = getPointFromPixel(triangle + 1);
+    vec3 point2 = getPointFromPixel(triangle + 2);
     float a = point0.x - point1.x;
     float b = point0.y - point1.y;
     float c = point0.z - point1.z;
@@ -43,22 +54,21 @@ vec3 intersection(vec3 rayO, vec3 rayD) {
     float j = point0.x - rayO.x;
     float k = point0.y - rayO.y;
     float l = point0.z - rayO.z;
-    float t = tInCramersRule(a, b, c, d, e, f, g, h, i, j, k, l);
+    float m = a * (e * i - h * f) + b * (g * f - d * i) + c * (d * h - e * g);
+    float t = -(f * (a * k - j * b) + e * (j * c - a * l) + d * (b * l - k * c)) / m;
+    vec3 res = vec3(-1.0);
     if (t < 0) {
-        //print('t = $t');
         return vec3(-1.0);
     }
-    float y = yInCramersRule(a, b, c, d, e, f, g, h, i, j, k, l);
+    float y = (i * (a * k - j * b) + h * (j * c - a * l) + g * (b * l - k * c)) / m;
     if (y < 0 || y > 1) {
-        //print('y = $y');
         return vec3(-1.0);
     }
-    float beta = bInCramersRule(a, b, c, d, e, f, g, h, i, j, k, l);
+    float beta = (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / m;
     if (beta < 0 || beta > 1 - y) {
-        //print('beta = $beta');
         return vec3(-1.0);
     }
-    return rayO + rayD * t;//
+    return rayO + rayD * t;
 }
 
 vec3 getRay(vec2 fragCoord) {
@@ -75,6 +85,9 @@ vec3 getRay(vec2 fragCoord) {
     return direction;
 }
 
+float hash(float n) {
+    return fract(sin(n) * 43758.5453123);
+}
 
 void main() {
     // Generate the ray for the current fragment
@@ -83,14 +96,32 @@ void main() {
     vec2 normalized = vec2(normalizedX, normalizedY);
     vec3 direction = getRay(normalized);
 
-    // Check for intersection with the triangle
-    vec3 intersectionPoint = intersection(uCameraPosition, direction);
-    bool hit = intersectionPoint.x != -1.0;
+    float minDistance = 1000000.0;
+    int closestTriangle = -1;
 
-    // Set fragment color based on intersection
-    if (hit) {
-        fragColor = vec4(0.0, 0.0, 0.0, 1.0);// Black for intersection
+    for (int triangle = 0; triangle < 256; triangle++) {
+        if (triangle >= triangleCount) {
+            break;
+        }
+        vec3 ip = intersection(uCameraPosition, direction, triangle * 3);
+
+        // Check for the closest intersection
+        if (ip.x != -1.0) {
+            float distance = length(ip - uCameraPosition);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestTriangle = triangle + 1;
+            }
+        }
+    }
+
+    if (closestTriangle > 0) {
+        float r = hash(float(closestTriangle) * 12.9898);
+        float g = hash(float(closestTriangle) * 78.233);
+        float b = hash(float(closestTriangle) * 45.164);
+
+        fragColor = vec4(r, g, b, 1.0);
     } else {
-        fragColor = vec4(0.0, 0.0, 1.0, 1.0);// Blue for no intersection
+        fragColor = vec4(0, 0, 0, 1.0);
     }
 }

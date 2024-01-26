@@ -29,47 +29,33 @@ class Camera {
     return Ray.originDirection(position, direction);
   }
 
-  void rotateLeft() {
-    var rotation = Matrix4.rotationZ(0.01);
+  void rotateRight(double amount) {
+    var rotation = Matrix4.rotationZ(amount);
     forward = rotation.transform3(forward);
     up = rotation.transform3(up);
     right = rotation.transform3(right);
   }
 
-  void rotateRight() {
-    var rotation = Matrix4.rotationZ(-0.01);
-    forward = rotation.transform3(forward);
-    up = rotation.transform3(up);
-    right = rotation.transform3(right);
-  }
-
-  void rotateUp() {
-    var rotation = Matrix4.rotationY(0.01);
-    forward = rotation.transform3(forward);
-    up = rotation.transform3(up);
-    right = rotation.transform3(right);
-  }
-
-  void rotateDown() {
-    var rotation = Matrix4.rotationY(-0.01);
+  void rotateUp(double amount) {
+    var rotation = Matrix4.rotationY(amount);
     forward = rotation.transform3(forward);
     up = rotation.transform3(up);
     right = rotation.transform3(right);
   }
 
   void moveForward() {
-    position += forward * 0.1;
+    position += forward * 2.4 * 10;
   }
 
   void moveBackward() {
-    position -= forward * 0.1;
+    position -= forward * 2.4 * 10;
   }
 
   void moveRight() {
-    position += right * 0.1;
+    position += right * 0.4 * 10;
   }
 
   void moveLeft() {
-    position -= right * 0.1;
+    position -= right * 0.4 * 10;
   }
 }

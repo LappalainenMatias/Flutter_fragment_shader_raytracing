@@ -17,22 +17,6 @@ out vec4 fragColor;
 float minDistance = 1000000.0; // Large initial value
 int closestTriangle = -1; // -1 indicates no intersection
 
-float mInCramersRule(float a, float b, float c, float d, float e, float f, float g, float h, float i) {
-    return a * (e * i - h * f) + b * (g * f - d * i) + c * (d * h - e * g);
-}
-
-float tInCramersRule(float a, float b, float c, float d, float e, float f, float g, float h, float i, float j, float k, float l) {
-    return -(f * (a * k - j * b) + e * (j * c - a * l) + d * (b * l - k * c)) / mInCramersRule(a, b, c, d, e, f, g, h, i);
-}
-
-float yInCramersRule(float a, float b, float c, float d, float e, float f, float g, float h, float i, float j, float k, float l) {
-    return (i * (a * k - j * b) + h * (j * c - a * l) + g * (b * l - k * c)) / mInCramersRule(a, b, c, d, e, f, g, h, i);
-}
-
-float bInCramersRule(float a, float b, float c, float d, float e, float f, float g, float h, float i, float j, float k, float l) {
-    return (j * (e * i - h * f) + k * (g * f - d * i) + l * (d * h - e * g)) / mInCramersRule(a, b, c, d, e, f, g, h, i);
-}
-
 vec3 getPointFromPixel(int index) {
     float yCoord = (float(index) * 2 + 1) / float(triangleCount * 3 * 2);
     return texture(uTexture, vec2(0.5, yCoord)).xyz * 255.0;
@@ -56,7 +40,6 @@ vec3 intersection(vec3 rayO, vec3 rayD, int triangle) {
     float l = point0.z - rayO.z;
     float m = a * (e * i - h * f) + b * (g * f - d * i) + c * (d * h - e * g);
     float t = -(f * (a * k - j * b) + e * (j * c - a * l) + d * (b * l - k * c)) / m;
-    vec3 res = vec3(-1.0);
     if (t < 0) {
         return vec3(-1.0);
     }
@@ -99,10 +82,11 @@ void main() {
     float minDistance = 1000000.0;
     int closestTriangle = -1;
 
-    for (int triangle = 0; triangle < 256; triangle++) {
+    for (int triangle = 0; triangle < 128; triangle++) {
         if (triangle >= triangleCount) {
             break;
         }
+
         vec3 ip = intersection(uCameraPosition, direction, triangle * 3);
 
         // Check for the closest intersection
@@ -119,7 +103,6 @@ void main() {
         float r = hash(float(closestTriangle) * 12.9898);
         float g = hash(float(closestTriangle) * 78.233);
         float b = hash(float(closestTriangle) * 45.164);
-
         fragColor = vec4(r, g, b, 1.0);
     } else {
         fragColor = vec4(0, 0, 0, 1.0);

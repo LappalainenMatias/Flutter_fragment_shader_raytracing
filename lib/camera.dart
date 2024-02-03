@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:vector_math/vector_math.dart';
 import 'dart:math' as Math;
 class Camera {
@@ -15,6 +16,9 @@ class Camera {
     this.fieldOfView = 90, // Default field of view in degrees
     this.aspectRatio = 1.0, // Default aspect ratio
   }) {
+    if (kDebugMode) {
+      print("camera created");
+    }
     forward.normalize();
     this.up = (up ?? Vector3(0, 1, 0)).normalized();
     right = forward.cross(this.up).normalized();
@@ -30,32 +34,32 @@ class Camera {
   }
 
   void rotateRight(double amount) {
-    var rotation = Matrix4.rotationZ(amount);
-    forward = rotation.transform3(forward);
-    up = rotation.transform3(up);
-    right = rotation.transform3(right);
+    var rotation = Matrix4.rotationY(amount);
+    forward = rotation.transform3(forward).normalized();
+    up = rotation.transform3(up).normalized();
+    right = forward.cross(up).normalized();
   }
 
   void rotateUp(double amount) {
-    var rotation = Matrix4.rotationY(amount);
-    forward = rotation.transform3(forward);
-    up = rotation.transform3(up);
-    right = rotation.transform3(right);
+    var rotation = Matrix4.rotationX(amount);
+    forward = rotation.transform3(forward).normalized();
+    up = rotation.transform3(up).normalized();
+    right = forward.cross(up).normalized();
   }
 
   void moveForward() {
-    position += forward * 2.4 * 10;
+    position += forward;
   }
 
   void moveBackward() {
-    position -= forward * 2.4 * 10;
+    position -= forward;
   }
 
   void moveRight() {
-    position += right * 0.4 * 10;
+    position += right;
   }
 
   void moveLeft() {
-    position -= right * 0.4 * 10;
+    position -= right;
   }
 }
